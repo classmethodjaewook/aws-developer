@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create IAM User
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters: #유저 이름과 비밀번호 입력을 위한 파라미터
+  UserName:
+    Description: IAM User Name.
+    Type: String
+  UserPassword:
+    Description: IAM User Password.
+    Type: String
+    NoEcho: true
+# ------------------------------------------------------------#
+#  Create IAM User
+# ------------------------------------------------------------#
+Resources:
+  IAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName # 파라미터에서 입력한 유저 이름을 참조
+      LoginProfile:
+        Password: !Ref UserPassword # 파라미터에서 입력한 비밀번호를 참조
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess # IAM 사용자에게 관리자 권한을 할당
+# ------------------------------------------------------------#
+#  Create IAM AccessKey & SecretKey
+# ------------------------------------------------------------#
+  IAMUserAccessKey: 
+    Type: AWS::IAM::AccessKey # CLI를 사용하기 위해 액세스 및 시크릿 키 생성
+    Properties:
+      UserName: !Ref IAMUser
+
+  AccessKeySecretManager:
+    Type: AWS::SecretsManager::Secret # 액세스 키 및 시크릿 키를 시크릿 매니저에 저장
+    Properties:
+      Name: !Sub ${IAMUser}-credentials
+      SecretString: !Sub "{\"accessKeyId\":\"${IAMUserAccessKey}\",\"secretKeyId\":\"${IAMUserAccessKey.SecretAccessKey}\"}"

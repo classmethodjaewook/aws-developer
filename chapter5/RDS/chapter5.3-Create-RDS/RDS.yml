@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create RDS
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  RDSMasterUserName:
+    Description: Staging RDS DB Master User Name.
+    Default: "grsys"
+    Type: String
+  RDSMasterPassword:
+    Description: Staging RDS DB Master Password.
+    Type: String
+    NoEcho: true
+  RDSMaintenanceWindow:
+    Description: Staging Enter MaintenanceWindow(UTC)
+    Type: String
+    Default: "sat:18:00-sat:19:00" # KST：[日] 03:00 - 04:00
+# ------------------------------------------------------------#
+#  Create RDS
+# ------------------------------------------------------------#
+Resources:
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub ${SystemName}-${EnvName}-rds
+      DBName: "grdb" # 초기 데이터베이스 이름
+      CharacterSetName: KO16MSWIN949
+      DBInstanceClass: db.t3.xlarge
+      Engine: oracle-se2
+      MultiAZ: false #　multiAZ 설정 없음
+      EngineVersion: '19.0.0.0.ru-2023-10.rur-2023-10.r1'
+      LicenseModel: 'license-included'
+      Port: 1521
+      AutoMinorVersionUpgrade: false
+      PubliclyAccessible: false
+      AvailabilityZone:
+        Fn::Select: 
+        - 0
+        - Fn::GetAZs: ""
+      StorageType: "gp3"
+      AllocatedStorage: "200"
+      StorageEncrypted: true
+      EnablePerformanceInsights: true # Performance Insight
+      PerformanceInsightsRetentionPeriod: 7 # Performance Insight(보존기간7日)
+      BackupRetentionPeriod: 0 # 자동 백업 무효화
+      MasterUsername: !Ref RDSMasterUserName
+      MasterUserPassword: !Ref RDSMasterPassword
+      PreferredMaintenanceWindow: !Ref RDSMaintenanceWindow # 유지 보수
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Sub ${EnvName}-rds-sg
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      DBParameterGroupName: !Ref RDSParameterGroup
+      OptionGroupName: !Ref RDSOptionGroup
+      Tags:
+          - Key: Name
+            Value: !Sub ${SystemName}-${EnvName}-rds
+          - Key: Env
+            Value: !Sub ${EnvName}
+# ------------------------------------------------------------#
+#  Create SubnetGroup
+# ------------------------------------------------------------#
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub ${SystemName}-${EnvName}-dbsub
+      DBSubnetGroupDescription: !Sub ${SystemName}-${EnvName}-dbsub Subnet Group
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${EnvName}-datastore-subnet-1a
+        - Fn::ImportValue: !Sub ${EnvName}-datastore-subnet-1b
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-dbsub
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------#
+#  Create ParameterGroup
+# ------------------------------------------------------------#
+  RDSParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      DBParameterGroupName: !Sub ${SystemName}-${EnvName}-dbpg19
+      Description: !Sub ${SystemName}-${EnvName}-dbpg19 Parameter
+      Family: 'oracle-se2-19'
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-dbpg19
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------#
+#  Create  OptionGroup
+# ------------------------------------------------------------#
+  RDSOptionGroup:
+    Type: AWS::RDS::OptionGroup
+    Properties:
+      OptionGroupName: !Sub ${SystemName}-${EnvName}-dbog19
+      OptionGroupDescription: !Sub ${SystemName}-${EnvName}-dbog19 Option Group
+      EngineName: "oracle-se2"
+      MajorEngineVersion: "19"
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-dbog19
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# RDS
+  RDSInstance:
+    Value: !Ref RDSInstance
+    Export:
+      Name: !Sub ${SystemName}-rds

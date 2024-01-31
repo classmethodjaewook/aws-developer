@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Security Group
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+# ------------------------------------------------------------#
+#  Create Security Group
+# ------------------------------------------------------------#
+Resources:
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup # 보안 그룹을 생성
+    Properties:
+      GroupName: !Sub ${SystemName}-${EnvName}-ec2-sg # 보안 그룹 이름을 지정
+      GroupDescription: !Sub ${SystemName}-${EnvName}-ec2-sg # 보안 그룹 설명
+      SecurityGroupIngress: # 허용할 IP 주소 설정
+            - IpProtocol: tcp
+              FromPort: 22
+              ToPort: 22
+              SourceSecurityGroupId:
+                Fn::ImportValue: !Sub ${EnvName}-sg-eic
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvName}-vpc
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-ec2-sg
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# Security Groups
+  EC2SecurityGroup:
+    Value: !Ref EC2SecurityGroup
+    Export:
+      Name: !Sub ${EnvName}-ec2-sg

@@ -1,0 +1,294 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VPC Network Set
+# ------------------------------------------------------------
+# Input Parameters
+# ------------------------------------------------------------
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  VPCParam: 
+    Description: gr-product-vpc
+    Type: String
+    Default: 10.0.0.0/24
+  PublicSubnet1aParam: 
+    Description: gr-product-public-subnet-1a
+    Type: String
+    Default: 10.0.0.0/27
+  PublicSubnet1bParam: 
+    Description: gr-product-public-subnet-1b
+    Type: String
+    Default: 10.0.0.32/27
+  WebSubnet1aParam: 
+    Description: gr-product-web-subnet-1a
+    Type: String
+    Default: 10.0.0.64/27
+  WebSubnet1bParam: 
+    Description: gr-product-web-subnet-1b
+    Type: String
+    Default: 10.0.0.96/27
+  DatastoreSubnet1aParam: 
+    Description: gr-product-datastore-subnet-1a
+    Type: String
+    Default: 10.0.0.128/27
+  DatastoreSubnet1bParam: 
+    Description: gr-product-datastore-subnet-1b
+    Type: String
+    Default: 10.0.0.160/27
+#-------------------------------------------------------------------
+# Create VPC、Subnet
+#-------------------------------------------------------------------
+Resources:
+  VPC: 
+    Type: "AWS::EC2::VPC"
+    Properties: 
+      CidrBlock: !Ref VPCParam
+      EnableDnsSupport: "true"
+      EnableDnsHostnames: "true"
+      InstanceTenancy: default
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-vpc
+        - Key: Env
+          Value: !Sub ${EnvName}
+  PublicSubnet1a: 
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone:
+        Fn::Select: 
+        - 0
+        - Fn::GetAZs: ""
+      CidrBlock: !Ref PublicSubnet1aParam
+      VpcId: !Ref VPC 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-public-subnet-1a
+        - Key: Env
+          Value: !Sub ${EnvName}
+  PublicSubnet1b: 
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone:
+        Fn::Select: 
+        - 1
+        - Fn::GetAZs: ""
+      CidrBlock: !Ref PublicSubnet1bParam
+      VpcId: !Ref VPC 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-public-subnet-1b
+        - Key: Env
+          Value: !Sub ${EnvName}
+  WebSubnet1a: 
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone:
+        Fn::Select: 
+        - 0
+        - Fn::GetAZs: ""
+      CidrBlock: !Ref WebSubnet1aParam
+      VpcId: !Ref VPC 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-web-subnet-1a
+        - Key: Env
+          Value: !Sub ${EnvName}
+  WebSubnet1b: 
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone:
+        Fn::Select: 
+        - 1
+        - Fn::GetAZs: ""
+      CidrBlock: !Ref WebSubnet1bParam
+      VpcId: !Ref VPC 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-web-subnet-1b
+        - Key: Env
+          Value: !Sub ${EnvName}
+  DatastoreSubnet1a: 
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone:
+        Fn::Select: 
+        - 0
+        - Fn::GetAZs: ""
+      CidrBlock: !Ref DatastoreSubnet1aParam
+      VpcId: !Ref VPC 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-datastore-subnet-1a
+        - Key: Env
+          Value: !Sub ${EnvName}
+  DatastoreSubnet1b: 
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone:
+        Fn::Select: 
+        - 1
+        - Fn::GetAZs: ""
+      CidrBlock: !Ref DatastoreSubnet1bParam
+      VpcId: !Ref VPC 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-datastore-subnet-1b
+        - Key: Env
+          Value: !Sub ${EnvName}
+#-------------------------------------------------------------------
+# Create Internet Gateway
+#-------------------------------------------------------------------
+  InternetGateway: 
+    Type: "AWS::EC2::InternetGateway"
+    Properties: 
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-igw
+        - Key: Env
+          Value: !Sub ${EnvName}
+  InternetGatewayAttachment: 
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties: 
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+#-------------------------------------------------------------------
+# Create EIP、NAT Gateway
+#-------------------------------------------------------------------
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-eip
+        - Key: Env
+          Value: !Sub ${EnvName}
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      AllocationId: !GetAtt EIP.AllocationId
+      SubnetId: !Ref PublicSubnet1a
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-nat
+        - Key: Env
+          Value: !Sub ${EnvName}
+#-------------------------------------------------------------------
+# Create Route Tables
+#-------------------------------------------------------------------
+  PublicRTB : 
+      Type: "AWS::EC2::RouteTable"
+      Properties: 
+        VpcId: !Ref VPC 
+        Tags: 
+          - Key: Name
+            Value: !Sub ${SystemName}-${EnvName}-public-rtb
+          - Key: Env
+            Value: !Sub ${EnvName}
+  WebRTB : 
+      Type: "AWS::EC2::RouteTable"
+      Properties: 
+        VpcId: !Ref VPC 
+        Tags: 
+          - Key: Name
+            Value: !Sub ${SystemName}-${EnvName}-web-rtb
+          - Key: Env
+            Value: !Sub ${EnvName}
+  DatastoreRTB : 
+      Type: "AWS::EC2::RouteTable"
+      Properties: 
+        VpcId: !Ref VPC 
+        Tags: 
+          - Key: Name
+            Value: !Sub ${SystemName}-${EnvName}-datastore-rtb
+          - Key: Env
+            Value: !Sub ${EnvName}
+#-------------------------------------------------------------------
+# Route Set
+#-------------------------------------------------------------------
+  PublicRoute: 
+    Type: "AWS::EC2::Route"
+    Properties: 
+      RouteTableId: !Ref PublicRTB
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+  WebRoute: 
+    Type: "AWS::EC2::Route"
+    Properties: 
+      RouteTableId: !Ref WebRTB
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NATGateway
+#-------------------------------------------------------------------
+# Route Tables Subnet Association
+#-------------------------------------------------------------------
+  PublicRTBAssociation1: 
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      SubnetId: !Ref PublicSubnet1a
+      RouteTableId: !Ref PublicRTB
+  PublicRTBAssociation2: 
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      SubnetId: !Ref PublicSubnet1b
+      RouteTableId: !Ref PublicRTB
+  WebRTBAssociation1: 
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      SubnetId: !Ref WebSubnet1a
+      RouteTableId: !Ref WebRTB
+  WebRTBAssociation2: 
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      SubnetId: !Ref WebSubnet1b
+      RouteTableId: !Ref WebRTB
+  DatastoreRTBAssociation1: 
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      SubnetId: !Ref DatastoreSubnet1a
+      RouteTableId: !Ref DatastoreRTB
+  DatastoreRTBAssociation2: 
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      SubnetId: !Ref DatastoreSubnet1b
+      RouteTableId: !Ref DatastoreRTB
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# VPC
+  VPC:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${EnvName}-vpc
+# public-subnet
+  PublicSubnet1a:
+    Value: !Ref PublicSubnet1a
+    Export:
+      Name: !Sub ${EnvName}-public-subnet-1a
+  PublicSubnet1b:
+    Value: !Ref PublicSubnet1b
+    Export:
+      Name: !Sub ${EnvName}-public-subnet-1b
+# Web-subnet
+  WebSubnet1a:
+    Value: !Ref WebSubnet1a
+    Export:
+      Name: !Sub ${EnvName}-web-subnet-1a
+  WebSubnet1c:
+    Value: !Ref WebSubnet1b
+    Export:
+      Name: !Sub ${EnvName}-web-subnet-1b
+# Datastore-subnet
+  DatastoreSubnet1a:
+    Value: !Ref DatastoreSubnet1a
+    Export:
+      Name: !Sub ${EnvName}-datastore-subnet-1a
+  DatastoreSubnet1c:
+    Value: !Ref DatastoreSubnet1b
+    Export:
+      Name: !Sub ${EnvName}-datastore-subnet-1b
