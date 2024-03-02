@@ -92,7 +92,7 @@ Resources:
         - 0
         - Fn::GetAZs: ""
       CidrBlock: !Ref WebSubnet1aParam
-      VpcId: !Ref VPC 
+      VpcId: !Ref VPC
       Tags: 
         - Key: Name
           Value: !Sub ${SystemName}-${EnvName}-web-subnet-1a
@@ -157,28 +157,6 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 #-------------------------------------------------------------------
-# Create EIP、NAT Gateway
-#-------------------------------------------------------------------
-  EIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Tags: 
-        - Key: Name
-          Value: !Sub ${SystemName}-${EnvName}-eip
-        - Key: Env
-          Value: !Sub ${EnvName}
-  NATGateway:
-    Type: AWS::EC2::NatGateway
-    DependsOn: InternetGatewayAttachment
-    Properties:
-      AllocationId: !GetAtt EIP.AllocationId
-      SubnetId: !Ref PublicSubnet1a
-      Tags: 
-        - Key: Name
-          Value: !Sub ${SystemName}-${EnvName}-nat
-        - Key: Env
-          Value: !Sub ${EnvName}
-#-------------------------------------------------------------------
 # Create Route Tables
 #-------------------------------------------------------------------
   PublicRTB : 
@@ -217,12 +195,6 @@ Resources:
       RouteTableId: !Ref PublicRTB
       DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref InternetGateway
-  WebRoute: 
-    Type: "AWS::EC2::Route"
-    Properties: 
-      RouteTableId: !Ref WebRTB
-      DestinationCidrBlock: "0.0.0.0/0"
-      NatGatewayId: !Ref NATGateway
 #-------------------------------------------------------------------
 # Route Tables Subnet Association
 #-------------------------------------------------------------------
