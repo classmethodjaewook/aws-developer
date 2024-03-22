@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Security Group
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+# ------------------------------------------------------------#
+#  Create Security Group
+# ------------------------------------------------------------#
+Resources:
+  EC2SecurityGroupA:
+    Type: AWS::EC2::SecurityGroup # 보안 그룹을 생성
+    Properties:
+      GroupName: !Sub ${SystemName}-${EnvName}-ec2-sg-a # 보안 그룹 이름을 지정
+      GroupDescription: !Sub ${SystemName}-${EnvName}-ec2-sg-a # 보안 그룹 설명
+      SecurityGroupIngress: # 허용할 IP 주소 설정
+            - IpProtocol: tcp
+              FromPort: 22
+              ToPort: 22
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: tcp
+              FromPort: 80
+              ToPort: 80
+              SourceSecurityGroupId: !GetAtt EC2SecurityGroupB.GroupId
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvName}-vpc
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-ec2-sg-a
+        - Key: Env
+          Value: !Sub ${EnvName}
+  EC2SecurityGroupB:
+    Type: AWS::EC2::SecurityGroup # 보안 그룹을 생성
+    Properties:
+      GroupName: !Sub ${SystemName}-${EnvName}-ec2-sg-b # 보안 그룹 이름을 지정
+      GroupDescription: !Sub ${SystemName}-${EnvName}-ec2-sg-b # 보안 그룹 설명
+      SecurityGroupIngress: # 허용할 IP 주소 설정
+            - IpProtocol: tcp
+              FromPort: 22
+              ToPort: 22
+              CidrIp: 0.0.0.0/0
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvName}-vpc
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-ec2-sg-b
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# Security Groups
+  EC2SecurityGroupA:
+    Value: !Ref EC2SecurityGroupA
+    Export:
+      Name: !Sub ${EnvName}-ec2-sg-a
+  EC2SecurityGroupB:
+    Value: !Ref EC2SecurityGroupB
+    Export:
+      Name: !Sub ${EnvName}-ec2-sg-b

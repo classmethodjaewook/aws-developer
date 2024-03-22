@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create S3
+# ------------------------------------------------------------
+# Input Parameters
+# ------------------------------------------------------------
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  SubDomain:
+    Description: FQDN of the certificate
+    Type: String
+    Default: "test.example.com" #domain address to be used
+  EC2InstanceAIPAddress:
+    Type: CommaDelimitedList
+# ------------------------------------------------------------#
+# Create Hosted Zone
+# ------------------------------------------------------------# 
+Resources:
+  DNS: 
+    Type: "AWS::Route53::HostedZone"
+    Properties: 
+      Name: "example.com"
+      VPCs: 
+        - VPCId:
+             Fn::ImportValue: !Sub ${EnvName}-vpc
+          VPCRegion:
+            Fn::Sub: "${AWS::Region}"
+      HostedZoneTags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-zone
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------#
+# Set Route53 Record
+# ------------------------------------------------------------#
+  DnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Sub ${DNS}
+      Comment: "DNS for EC2"
+      Name: !Sub ${SubDomain}
+      Type: A
+      TTL: "300"
+      ResourceRecords: !Ref EC2InstanceAIPAddress
