@@ -23,10 +23,6 @@ Resources:
       GroupDescription: !Sub ${SystemName}-${EnvName}-ec2-sg-a # 보안 그룹 설명
       SecurityGroupIngress: # 허용할 IP 주소 설정
             - IpProtocol: tcp
-              FromPort: 22
-              ToPort: 22
-              CidrIp: 0.0.0.0/0
-            - IpProtocol: tcp
               FromPort: 80
               ToPort: 80
               SourceSecurityGroupId: !GetAtt EC2SecurityGroupB.GroupId
