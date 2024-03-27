@@ -15,7 +15,7 @@ Parameters:
   BucketName:
     Description: "Bucket name."
     Type: String
-    Default: "gr-product-bucket"
+    Default: "bucket"
 # ------------------------------------------------------------#
 # Create S3 Bucket
 # ------------------------------------------------------------# 
@@ -23,7 +23,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${BucketName}
+      BucketName: !Sub ${SystemName}-${EnvName}-${BucketName}
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -37,7 +37,7 @@ Resources:
             ExpirationInDays: 90
       Tags:
         - Key: Name
-          Value: !Sub ${BucketName}
+          Value: !Sub ${SystemName}-${EnvName}-${BucketName}
         - Key: Env
           Value: !Sub ${EnvName}
 #------------------------------------------------------------
@@ -47,4 +47,4 @@ Outputs:
   S3Bucket:
     Value: !Ref S3Bucket
     Export:
-      Name: !Sub ${BucketName}
+      Name: !Sub ${EnvName}-${BucketName}
