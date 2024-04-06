@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Cognito UserPool & Identity Pool
+# ------------------------------------------------------------
+# Input Parameters
+# ------------------------------------------------------------
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+#-------------------------------------------------------------------
+# Create UserPool
+#-------------------------------------------------------------------
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub ${SystemName}-${EnvName}-UserPool
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false # 관리자 이외에도 프로필을 생성 가능하도록 허용
+        UnusedAccountValidityDays: 7  # 관리자가 설정한 임시 암호의 만료까지 남은 시간
+      UsernameAttributes: # 사용자가 회원 가입할 때 이메일을 지정
+      - email
+      Policies: # 암호 정책 설정
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+      MfaConfiguration: 'OFF' # MFA 설정은 무효화
+      AccountRecoverySetting: # 계적 복구에는 이메일을 사용
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AutoVerifiedAttributes: # 로그인, 계쩡 복구 등에 사용할 인증 방법을 선택
+      - email
+      UserAttributeUpdateSettings: # 업데이트가 보류 중일 때 원래 속성 값을 활성 상태로 유지
+        AttributesRequireVerificationBeforeUpdate:
+          - email
+      Schema: # 새 사용자가 생성될 때 필요한 속성을 확인
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      EmailConfiguration: # 인증시 사용자에게 보낼 이메일 주소를 선택
+        EmailSendingAccount: COGNITO_DEFAULT
+        ReplyToEmailAddress: no-reply@verificationemail.com
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub ${SystemName}-${EnvName}-ClientPool
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+#-------------------------------------------------------------------
+# Create Identity Pool
+#-------------------------------------------------------------------
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub ${SystemName}-${EnvName}-IdentityPool
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !GetAtt UserPool.ProviderName
+#-------------------------------------------------------------------
+# Create Identity Pool Role
+#-------------------------------------------------------------------
+  IdentityPoolRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub ${SystemName}-${EnvName}-cognito-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ec2.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
+      Policies:
+        - PolicyName: "CustomerInlinePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: "CLICloudformationPolicy"
+                Effect: "Allow"
+                Action:
+                  - "cloudformation:DeleteStackSet"
+                  - "cloudformation:DescribeStackSet"
+                  - "cloudformation:UpdateStackSet"
+                Resource:
+                  - "arn:aws:cloudformation:*:*:stack/amplify-*"
+              - Sid: "CLIManageviaCFNPolicy"
+                Effect: "Allow"
+                Action:
+                  - "cognito-idp:SetUserPoolMfaConfig"
+                  - "appsync:UntagResource"
+                  - "es:UpdateElasticsearchDomainConfig"
+                  - "dynamodb:UntagResource"
+                  - "iam:UntagRole"
+                Resource: "*"
+                Condition:
+                  ForAnyValue:StringEquals:
+                    aws:CalledVia:
+                      - "cloudformation.amazonaws.com"
+              - Sid: "CLISDKCalls"
+                Effect: "Allow"
+                Action:
+                  - "lambda:GetLayerVersionByArn"
+                  - "rekognition:DescribeCollection"
+                  - "logs:DescribeLogStreams"
+                  - "logs:GetLogEvents"
+                  - "lex:GetBot"
+                  - "lex:GetBuiltinIntent"
+                  - "lex:GetBuiltinIntents"
+                  - "lex:GetBuiltinSlotTypes"
+                  - "lambda:InvokeFunction"
+                  - "cognito-idp:ListIdentityProviders"
+                  - "cognito-idp:AddCustomAttributes"
+                  - "cloudformation:ListStackResources"
+                  - "cloudformation:DescribeStacks"
+                  - "lambda:UpdateEventSourceMapping"
+                  - "polly:DescribeVoices"
+                Resource: "*"
+              - Sid: "CLISSMSDKCalls"
+                Effect: "Allow"
+                Action:
+                  - "ssm:DeleteParameter"
+                  - "ssm:DeleteParameters"
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                  - "ssm:GetParametersByPath"
+                  - "ssm:PutParameter"
+                Resource: "arn:aws:ssm:*:*:parameter/amplify/*"
+              - Sid: "GeoPowerUser"
+                Effect: "Allow"
+                Action: "geo:*"
+                Resource: "*"
+#-------------------------------------------------------------------
+# Attachment Identity Pool role
+#-------------------------------------------------------------------       
+  IdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt IdentityPoolRole.Arn
