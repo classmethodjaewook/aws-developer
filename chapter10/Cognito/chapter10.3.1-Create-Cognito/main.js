@@ -1,6 +1,6 @@
 const poolData = {
-	UserPoolId: 'ap-northeast-2_bhfwjCVEV', // 사용자 풀 ID
-	ClientId: '7773v10ilnfulb9c3ccoievlb0', // 클라이언트 ID
+	UserPoolId: 'xxxxxxxxx', // 사용자 풀 ID
+	ClientId: 'xxxxxxxxx', // 클라이언트 ID
 };
 
 // signup.html
