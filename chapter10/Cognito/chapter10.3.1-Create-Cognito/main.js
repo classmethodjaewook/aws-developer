@@ -1,6 +1,6 @@
 const poolData = {
-	UserPoolId: 'xxxxxxxxx', // 사용자 풀 ID
-	ClientId: 'xxxxxxxx', // 클라이언트 ID
+	UserPoolId: 'ap-northeast-2_bhfwjCVEV', // 사용자 풀 ID
+	ClientId: '7773v10ilnfulb9c3ccoievlb0', // 클라이언트 ID
 };
 
 // signup.html
@@ -60,7 +60,7 @@ function Login() {
 		Pool: userPool,
 	};
     
-    var cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+  var cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
 
 	cognitoUser.authenticateUser(authenticationDetails, {
         onSuccess: function (result) {

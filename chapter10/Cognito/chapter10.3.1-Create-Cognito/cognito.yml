@@ -23,7 +23,7 @@ Resources:
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false # 관리자 이외에도 프로필을 생성 가능하도록 허용
         UnusedAccountValidityDays: 7  # 관리자가 설정한 임시 암호의 만료까지 남은 시간
-      UsernameAttributes: # 사용자가 회원 가입할 때 이메일을 지정
+      UsernameAttributes: # 사용자가 회원가입할 때 이메일을 지정
       - email
       Policies: # 암호 정책 설정
         PasswordPolicy:
@@ -33,11 +33,11 @@ Resources:
           RequireSymbols: false
           RequireUppercase: true
       MfaConfiguration: 'OFF' # MFA 설정은 무효화
-      AccountRecoverySetting: # 계적 복구에는 이메일을 사용
+      AccountRecoverySetting: # 계정 복구에는 이메일을 사용
         RecoveryMechanisms:
           - Name: verified_email
             Priority: 1
-      AutoVerifiedAttributes: # 로그인, 계쩡 복구 등에 사용할 인증 방법을 선택
+      AutoVerifiedAttributes: # 로그인, 계정 복구 등에 사용할 인증 방법을 선택
       - email
       UserAttributeUpdateSettings: # 업데이트가 보류 중일 때 원래 속성 값을 활성 상태로 유지
         AttributesRequireVerificationBeforeUpdate:
