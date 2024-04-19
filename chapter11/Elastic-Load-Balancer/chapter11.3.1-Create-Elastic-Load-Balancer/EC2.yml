@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create EC2
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  KeyPairName: 
+    Description: gr-product-ec2 EC2 Key Pair
+    Type: String
+    Default: gr-product-ec2-key
+  EC2AMI: 
+    Description: gr-product-ec2 EC2 AMI
+    Type: String
+    Default: ami-02d081c743d676996
+  InstanceType:
+    Description: gr-product-ec2 EC2 instance type
+    Type: String
+    Default: t2.micro
+# ------------------------------------------------------------#
+#  Create EC2 Instance 
+# ------------------------------------------------------------#
+Resources:
+  NewKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: !Ref KeyPairName
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref EC2AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref NewKeyPair
+      IamInstanceProfile: 
+        Fn::ImportValue: !Sub ${EnvName}-ec2-role
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 100
+            VolumeType: gp3
+            Encrypted : true
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub ${EnvName}-ec2-sg
+      SubnetId:
+        Fn::ImportValue: !Sub ${EnvName}-web-subnet-1a
+      UserData: 
+        Fn::Base64: |
+          #!/bin/bash
+          # Use this for your user data (script from top to bottom)
+          # install httpd (Linux 2 version)
+          sudo yum update -y
+          sudo yum install httpd-2.4.51 -y
+          sudo systemctl start httpd
+          sudo systemctl enable httpd
+          sudo httpd -v
+          sudo cp /usr/share/httpd/noindex/index.html /var/www/html/index.html
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-ec2
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# EC2
+  EC2Instance:
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub ${EnvName}-ec2

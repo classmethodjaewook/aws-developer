@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  Create ALB or S3 Bucket
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+# ------------------------------------------------------------#
+#  Target Group
+# ------------------------------------------------------------#
+Resources:
+  ALBTargetGroup: 
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      VpcId: 
+        Fn::ImportValue: !Sub ${EnvName}-vpc
+      Name: !Sub ${SystemName}-${EnvName}-tgp
+      Protocol: HTTP
+      Port: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: "/"
+      HealthCheckPort: "traffic-port"
+      HealthyThresholdCount: 5 # 정상 임계 값
+      UnhealthyThresholdCount: 2 # 비정상 임계값
+      HealthCheckTimeoutSeconds: 5 # 제한 시간
+      HealthCheckIntervalSeconds: 60 # 간격
+      Matcher: 
+        HttpCode: 200 # 성공 코드
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-tgp
+        - Key: Env
+          Value: !Sub ${EnvName}
+      Targets: 
+        - Id: 
+            Fn::ImportValue: !Sub ${EnvName}-ec2
+          Port: 80
+# ------------------------------------------------------------#
+#  internet-facing ALB
+# ------------------------------------------------------------#
+  InternetFacingALB: 
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      Name: !Sub ${SystemName}-${EnvName}-alb
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-alb
+        - Key: Env
+          Value: !Sub ${EnvName}
+      Scheme: "internet-facing"
+      LoadBalancerAttributes: 
+        - Key: "deletion_protection.enabled"
+          Value: false
+        - Key: "idle_timeout.timeout_seconds"
+          Value: 60
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${EnvName}-alb-sg
+      Subnets: 
+        - Fn::ImportValue: !Sub ${EnvName}-public-subnet-1a
+        - Fn::ImportValue: !Sub ${EnvName}-public-subnet-1b
+      Type: application
+# ------------------------------------------------------------#
+#  Set ALB Listner
+# ------------------------------------------------------------#
+  ALBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - TargetGroupArn: !Ref ALBTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref InternetFacingALB
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# ALB
+  InternetFacingALB:
+    Value: !Ref InternetFacingALB
+    Export:
+      Name: !Sub ${EnvName}-alb
