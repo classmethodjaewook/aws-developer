@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create IAM Role
+# ------------------------------------------------------------
+# Input Parameters
+# ------------------------------------------------------------
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+# ------------------------------------------------------------#
+#  Create IAM Role
+# ------------------------------------------------------------#
+Resources:
+  EC2IAMRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: !Sub ${SystemName}-${EnvName}-ec2-role
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ${SystemName}-${EnvName}-ec2-role
+      Path: "/"
+      Roles:
+        - Ref: EC2IAMRole
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# IAM Profile
+  InstanceProfile:
+    Value: !Ref EC2InstanceProfile
+    Export:
+      Name: !Sub ${EnvName}-ec2-role
+  InstanceProfileArn:
+    Value: !GetAtt EC2InstanceProfile.Arn
+    Export:
+      Name: !Sub ${EnvName}-ec2-role-arn

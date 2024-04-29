@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Auto Scaling
+
+# ------------------------------------------------------------
+# Input Parameters
+# ------------------------------------------------------------
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  KeyPairName: 
+    Description: gr-product-ec2 EC2 Key Pair
+    Type: String
+    Default: gr-product-ec2-key
+  EC2AMI: 
+    Description: gr-product-ec2 EC2 AMI
+    Type: String
+    Default: ami-02d081c743d676996
+  InstanceType:
+    Description: gr-product-ec2 EC2 instance type
+    Type: String
+    Default: t3.micro
+# ------------------------------------------------------------#
+# Create LaunchTemplate 
+# ------------------------------------------------------------# 
+Resources:
+  NewKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: !Ref KeyPairName
+  WebLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ${SystemName}-${EnvName}-AppLaunchConfiguration
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Arn:
+            Fn::ImportValue: !Sub ${EnvName}-ec2-role-arn
+        BlockDeviceMappings: 
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp3
+            VolumeSize: 100
+            DeleteOnTermination: true
+            Encrypted: true
+        NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          Groups:
+            - Fn::ImportValue: !Sub ${EnvName}-ec2-sg
+        ImageId: !Ref EC2AMI
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyPairName
+        UserData: !Base64 | 
+          #!/bin/bash
+          # Use this for your user data (script from top to bottom)
+          # install httpd (Linux 2 version)
+          sudo yum update -y
+          sudo yum install httpd-2.4.51 -y
+          sudo systemctl start httpd
+          sudo systemctl enable httpd
+          sudo httpd -v
+          sudo cp /usr/share/httpd/noindex/index.html /var/www/html/index.html
+# ------------------------------------------------------------#
+# Create Auto Scaling Group
+# ------------------------------------------------------------# 
+  AyactPAutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      AutoScalingGroupName: !Sub ${SystemName}-${EnvName}-asg
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebLaunchTemplate
+        Version: !GetAtt WebLaunchTemplate.LatestVersionNumber
+      MetricsCollection: 
+        - Granularity: 1Minute
+          Metrics: 
+            - GroupMinSize
+            - GroupMaxSize
+      HealthCheckType : EC2
+      MaxSize: '3'
+      MinSize: '2'
+      DesiredCapacity: '2'
+      HealthCheckGracePeriod : '300'
+      VPCZoneIdentifier:
+        - "Fn::ImportValue": !Sub ${EnvName}-public-subnet-1a
+        - "Fn::ImportValue": !Sub ${EnvName}-public-subnet-1b
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-ec2
+          PropagateAtLaunch: true
+        - Key: Env
+          Value: !Sub ${EnvName}
+          PropagateAtLaunch: true
