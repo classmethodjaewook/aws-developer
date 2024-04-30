@@ -69,7 +69,7 @@ Resources:
 # Create Auto Scaling Group
 # ------------------------------------------------------------# 
   WebAutoScalingGroup:
-    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AutoScalingGroupName: !Sub ${SystemName}-${EnvName}-asg
       LaunchTemplate:
