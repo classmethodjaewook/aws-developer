@@ -68,7 +68,7 @@ Resources:
 # ------------------------------------------------------------#
 # Create Auto Scaling Group
 # ------------------------------------------------------------# 
-  AyactPAutoScalingGroup:
+  WebAutoScalingGroup:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
       AutoScalingGroupName: !Sub ${SystemName}-${EnvName}-asg
