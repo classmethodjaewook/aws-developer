@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create ECS
+# ------------------------------------------------------------
+# Input Parameters
+# ------------------------------------------------------------
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+# ------------------------------------------------------------#
+# Create IAM Role
+# ------------------------------------------------------------# 
+Resources:
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${SystemName}-${EnvName}-ecs-task-execution-role
+      Path: / 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+           - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: !Sub ${SystemName}-${EnvName}-ecs-task-allow-pullthrough
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: Allow
+                Action: 
+                  - ecr:CreateRepository
+                  - ecr:BatchImportUpstreamImage
+                Resource: "*"
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      RoleName: ecs-test-tast-role
+  TaskRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${SystemName}-${EnvName}-ecs-task-role-policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - "ssmmessages:CreateControlChannel"
+              - "ssmmessages:CreateDataChannel"
+              - "ssmmessages:OpenControlChannel"
+              - "ssmmessages:OpenDataChannel"
+            Resource: '*'
+      Roles:
+        - !Ref TaskRole
+# ------------------------------------------------------------#
+# Create ECS Cluster
+# ------------------------------------------------------------# 
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${SystemName}-${EnvName}-cluster
+# ------------------------------------------------------------#
+# Create ECS Service
+# ------------------------------------------------------------# 
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - InternetFacingALB
+    Properties:
+      ServiceName: !Sub ${SystemName}-${EnvName}-service
+      Cluster: !Ref ECSCluster
+      EnableExecuteCommand: true
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: !Sub ${SystemName}-task
+          ContainerPort: 80
+          TargetGroupArn: !Ref ALBTargetGroup
+      TaskDefinition: !Ref ECSTaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups:
+            - Fn::ImportValue: !Sub ${EnvName}-ec2-sg
+          Subnets:
+            - Fn::ImportValue: !Sub ${EnvName}-web-subnet-1a
+# ------------------------------------------------------------#
+# Create ECS Task
+# ------------------------------------------------------------# 
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${SystemName}-${EnvName}-task
+      ContainerDefinitions:
+        - Name: !Sub ${SystemName}-task
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+              Protocol: tcp
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/ecs-nginx:latest
+      Cpu: 512
+      Memory: 2048
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      RequiresCompatibilities: 
+        - FARGATE
+      NetworkMode: awsvpc
+      TaskRoleArn: !GetAtt TaskRole.Arn
+# ------------------------------------------------------------#
+#  Target Group
+# ------------------------------------------------------------#
+  ALBTargetGroup: 
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      VpcId: 
+        Fn::ImportValue: !Sub ${EnvName}-vpc
+      Name: !Sub ${SystemName}-${EnvName}-tgp
+      Protocol: HTTP
+      Port: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: "/"
+      HealthCheckPort: "traffic-port"
+      HealthyThresholdCount: 5 # 정상 임계 값
+      UnhealthyThresholdCount: 2 # 비정상 임계값
+      HealthCheckTimeoutSeconds: 5 # 제한 시간
+      HealthCheckIntervalSeconds: 60 # 간격
+      TargetType: ip
+      Matcher: 
+        HttpCode: 200 # 성공 코드
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-tgp
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------#
+#  internet-facing ALB
+# ------------------------------------------------------------#
+  InternetFacingALB: 
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      Name: !Sub ${SystemName}-${EnvName}-alb
+      Tags: 
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-alb
+        - Key: Env
+          Value: !Sub ${EnvName}
+      Scheme: "internet-facing"
+      LoadBalancerAttributes: 
+        - Key: "deletion_protection.enabled"
+          Value: false
+        - Key: "idle_timeout.timeout_seconds"
+          Value: 60
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${EnvName}-alb-sg
+      Subnets: 
+        - Fn::ImportValue: !Sub ${EnvName}-public-subnet-1a
+        - Fn::ImportValue: !Sub ${EnvName}-public-subnet-1b
+      Type: application
+# ------------------------------------------------------------#
+#  Set ALB Listner
+# ------------------------------------------------------------#
+  ALBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - TargetGroupArn: !Ref ALBTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref InternetFacingALB
