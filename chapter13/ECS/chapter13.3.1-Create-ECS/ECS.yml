@@ -88,7 +88,7 @@ Resources:
       ServiceName: !Sub ${SystemName}-${EnvName}-service
       Cluster: !Ref ECSCluster
       EnableExecuteCommand: true
-      DesiredCount: 1
+      DesiredCount: 2
       LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: !Sub ${SystemName}-task
@@ -101,6 +101,7 @@ Resources:
             - Fn::ImportValue: !Sub ${EnvName}-fargate-sg
           Subnets:
             - Fn::ImportValue: !Sub ${EnvName}-web-subnet-1a
+            - Fn::ImportValue: !Sub ${EnvName}-web-subnet-1b
 # ------------------------------------------------------------#
 # Create ECS Task
 # ------------------------------------------------------------# 
