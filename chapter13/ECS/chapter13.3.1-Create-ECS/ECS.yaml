@@ -98,7 +98,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           SecurityGroups:
-            - Fn::ImportValue: !Sub ${EnvName}-ec2-sg
+            - Fn::ImportValue: !Sub ${EnvName}-fargate-sg
           Subnets:
             - Fn::ImportValue: !Sub ${EnvName}-web-subnet-1a
 # ------------------------------------------------------------#
