@@ -53,7 +53,7 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
-      RoleName: ecs-test-tast-role
+      RoleName: !Sub ${SystemName}-${EnvName}-ecs-task-exec-role
   TaskRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
