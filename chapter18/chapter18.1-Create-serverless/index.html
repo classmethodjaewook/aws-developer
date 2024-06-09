@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>test</title>
+</head>
+<body>
+<!-- GetData -->
+    <h1>List</h1>
+    <div id="responseData"></div>
+
+ <!-- InputData -->
+    <div>
+        <h1>Input</h1>
+            <table>
+                <tr>
+                    <td><input type="text" id="id" placeholder="ID"></td>
+                    <td><input type="text" id="name" placeholder="Name"></td>
+                    <td><input type="text" id="description" placeholder="Description"></td>
+                </tr>
+            </table>
+            <button onclick="sendDataToLambda()">Send Data</button>
+    </div>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>

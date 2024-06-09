@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  Create RDS
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  DBInstanceClass:
+    Description: DBInstanceType
+    Default: "db.m5d.large"
+    Type: String
+  RDSDbMasterUserName:
+    Description: RDS DB Master User Name.
+    Default: "admin"
+    Type: String
+  RDSDbMasterPassword:
+    Description: RDS DB Master Password.
+    Type: String
+    NoEcho: true
+  MaintenanceWindow:
+    Description: Enter MaintenanceWindow(UTC)
+    Type: String
+    Default: "sat:16:00-sat:17:00" # KST：[日] 01:00 - 02:00
+# ------------------------------------------------------------#
+#  Create RDS
+# ------------------------------------------------------------#
+Resources:
+  RDSDBInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceIdentifier: !Sub ${SystemName}-${EnvName}-rds
+      DBName: "wordpress" # 초기 데이터베이스 이름
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: mysql
+      MultiAZ: false #　multiAZ 설정 없음
+      EngineVersion: 8.0.35
+      Port: 3306
+      AutoMinorVersionUpgrade: false
+      PubliclyAccessible: false # 퍼블릭 접근 불가능
+      DeletionProtection: false # 삭제 방지 없음
+      AvailabilityZone: # AvailabilityZone 설정
+        Fn::Select: 
+        - 0
+        - Fn::GetAZs: ""
+      StorageType: "gp3"
+      AllocatedStorage: "200"
+      StorageEncrypted: true
+      EnablePerformanceInsights: true # Performance Insight
+      PerformanceInsightsRetentionPeriod: 7 # Performance Insight(보존 기간 7일)
+      BackupRetentionPeriod: 0 # 자동 백업 무효
+      MasterUsername: !Ref RDSDbMasterUserName
+      MasterUserPassword: !Ref RDSDbMasterPassword
+      PreferredMaintenanceWindow: !Ref MaintenanceWindow # 메인테넌스 윈도우
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Sub ${EnvName}-rds-sg
+      DBSubnetGroupName: !Ref SubnetGroup
+      DBParameterGroupName: !Ref RDSDBParameterGroup
+      OptionGroupName: !Ref OptionGroup
+      Tags:
+          - Key: Name
+            Value: !Sub ${SystemName}-${EnvName}-rds
+          - Key: Env
+            Value: !Sub ${EnvName}
+# ------------------------------------------------------------#
+#  Create SubnetGroup
+# ------------------------------------------------------------#
+  SubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub ${SystemName}-${EnvName}-rds-dbsub Subnet Group
+      DBSubnetGroupName: !Sub ${SystemName}-${EnvName}-rds-dbsub
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${EnvName}-datastore-subnet-1a
+        - Fn::ImportValue: !Sub ${EnvName}-datastore-subnet-1b
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-rds-dbsub
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------#
+#  Create ParameterGroup
+# ------------------------------------------------------------#
+  RDSDBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      DBParameterGroupName: !Sub ${SystemName}-${EnvName}-rds-dbpg
+      Description: !Sub ${SystemName}-${EnvName}-rds-dbpg Parameter
+      Family: 'mysql8.0'
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-rds-dbpg
+        - Key: Env
+          Value: !Sub ${EnvName}
+# ------------------------------------------------------------#
+#  Create  OptionGroup
+# ------------------------------------------------------------#
+  OptionGroup:
+    Type: "AWS::RDS::OptionGroup"
+    Properties:
+      EngineName: "mysql"
+      MajorEngineVersion: "8.0"
+      OptionGroupDescription: !Sub ${SystemName}-${EnvName}-rds-dbog Option Group
+      OptionGroupName: !Sub ${SystemName}-${EnvName}-rds-dbog
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-rds-dbog
+        - Key: Env
+          Value: !Sub ${EnvName}
