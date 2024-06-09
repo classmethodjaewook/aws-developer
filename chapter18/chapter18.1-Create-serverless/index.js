@@ -11,7 +11,7 @@ async function sendDataToLambda() {
             description: htmldescription
         };
 
-        const response = await axios.post('https://47ahx69fka.execute-api.ap-northeast-2.amazonaws.com/gr-prd-stage', dataToSend);
+        const response = await axios.post('API Gateway URL 입력', dataToSend);
         console.log('Response from Lambda:', response.data);
 
     } catch (error) {
@@ -22,7 +22,7 @@ async function sendDataToLambda() {
 // get data from lambda(dynamoDB)
 async function getDataToLambda() {
     try {
-        const response = await axios.get('https://47ahx69fka.execute-api.ap-northeast-2.amazonaws.com/gr-prd-stage');
+        const response = await axios.get('API Gateway URL 입력');
 
         const getData = response.data;
 
