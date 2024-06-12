@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create AWS Backup
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+
+# ------------------------------------------------------------#
+# Create Backup Vault
+# ------------------------------------------------------------# 
+Resources:
+  EC2BackupVault:
+    Type: "AWS::Backup::BackupVault"
+    Properties:
+      BackupVaultName: !Sub ${SystemName}-${EnvName}-bv-ec2
+      BackupVaultTags:
+        Name: !Sub ${SystemName}-${EnvName}-bv-ec2
+        Env: !Sub ${EnvName}
+
+# ------------------------------------------------------------#
+# Create Backup Plan
+# ------------------------------------------------------------# 
+  EC2BackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub ${SystemName}-${EnvName}-bp-ec2
+        BackupPlanRule:
+          - RuleName: !Sub ${SystemName}-${EnvName}-bprule-ec2
+            TargetBackupVault: !Ref EC2BackupVault
+            ScheduleExpression: cron(0 * * * ? *)
+            ScheduleExpressionTimezone: Asia/Seoul
+            StartWindowMinutes: 60
+            CompletionWindowMinutes: 120
+            Lifecycle:
+              DeleteAfterDays: 7
+      BackupPlanTags:
+        Name: !Sub ${SystemName}-${EnvName}-bp-ec2
+        Env: !Sub ${EnvName}
+
+# ------------------------------------------------------------#
+# Create Backup Selection
+# ------------------------------------------------------------# 
+  EC2BackupSelection:
+    Type: AWS::Backup::BackupSelection
+    Properties:
+      BackupPlanId: !Ref EC2BackupPlan
+      BackupSelection:
+        SelectionName: !Sub ${SystemName}-${EnvName}-selection-ec2
+        IamRoleArn: !GetAtt EC2BackupRole.Arn
+        ListOfTags: 
+          - ConditionType: "STRINGEQUALS"
+            ConditionKey: Name
+            ConditionValue: gr-product-ec2
+
+# ------------------------------------------------------------#
+# Create Backup Role
+# ------------------------------------------------------------# 
+  EC2BackupRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub ${SystemName}-p-role-backup-ec2
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Action: "sts:AssumeRole"
+          Principal:
+            Service: "backup.amazonaws.com"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+        - "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores"
+      Path: "/service-role/"
