@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create SNS Topic
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+
+# ------------------------------------------------------------#
+#  Create sns Topic
+# ------------------------------------------------------------#
+Resources:
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${SystemName}-${EnvName}-sns
+      Subscription:
+        - Endpoint: # 통지 받을 이메일 입력
+          Protocol: email
+
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# SNS
+  SNS:
+    Value: !Ref MySNSTopic
+    Export:
+      Name: !Sub ${EnvName}-sns

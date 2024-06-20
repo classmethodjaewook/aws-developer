@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create CloudWatch Alamrs
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  Ec2InstanceId:
+    Description: Ec2 InstanceId
+    Type: AWS::EC2::Instance::Id
+
+# ------------------------------------------------------------#
+#  Create CloudWatch Alarms
+# ------------------------------------------------------------#
+Resources:
+  C2CPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Sub ${EnvName}-sns
+      AlarmName: !Sub ${SystemName}-${EnvName}-Alarms
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 40
+      TreatMissingData: breaching
+      OKActions: 
+        - Fn::ImportValue: !Sub ${EnvName}-sns
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
