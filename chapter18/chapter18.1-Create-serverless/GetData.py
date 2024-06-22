@@ -1,6 +1,6 @@
 import boto3
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table("test-db")
+table = dynamodb.Table("gr-product-db")
 
 def lambda_handler(event, context):
     response = table.scan()
