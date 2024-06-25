@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create CloudFront & S3
+# ------------------------------------------------------------
+# Input Parameters
+# ------------------------------------------------------------
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  BucketName:
+    Description: "Bucket name."
+    Type: String
+    Default: "bucket"
+# ------------------------------------------------------------#
+# Create S3 Bucket
+# ------------------------------------------------------------# 
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${SystemName}-${EnvName}-${BucketName}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-${BucketName}
+        - Key: Env
+          Value: !Sub ${EnvName}
+  BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: "s3:GetObject"
+            Resource: !Sub ${S3Bucket.Arn}/*
+            Condition: 
+              StringEquals:
+                AWS:SourceArn: 
+                  - !Join 
+                    - ''
+                    - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
+                      - !Ref CloudFrontDistribution
+# ------------------------------------------------------------#
+#  CloudFront
+# ------------------------------------------------------------#
+  CloudFrontOriginAccessControl: 
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties: 
+      OriginAccessControlConfig:
+        Description: Access Control
+        Name: !Sub "${SystemName}-${EnvName}-${BucketName}-OAC"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4 
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        WebACLId: !ImportValue WebACLARN # WAFにアタッチ
+        Origins:
+        - DomainName: !GetAtt S3Bucket.RegionalDomainName
+          Id: !Sub "${SystemName}-${EnvName}-S3origin"
+          OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id 
+          S3OriginConfig: 
+            OriginAccessIdentity: ""
+        DefaultCacheBehavior: 
+          TargetOriginId: !Sub "${SystemName}-${EnvName}-S3origin" 
+          ViewerProtocolPolicy: allow-all
+          AllowedMethods:
+          - GET
+          - HEAD
+          Compress: true
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: false
+        HttpVersion: http2
+        Enabled: true  
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-cf
+        - Key: Env
+          Value: !Sub ${EnvName}
+#------------------------------------------------------------
+# Output Parameters
+#------------------------------------------------------------
+Outputs:
+  S3Bucket:
+    Value: !Ref S3Bucket
+    Export:
+      Name: !Sub ${EnvName}-${BucketName}
+  CloudFrontDistribution:
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub ${EnvName}-cf

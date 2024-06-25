@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AWS WAF WebACL 
+# ------------------------------------------------------------
+# Input Parameters
+# ------------------------------------------------------------
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+# ------------------------------------------------------------#
+# Create WAF
+# ------------------------------------------------------------# 
+Resources:
+  WebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      DefaultAction:
+        Allow: {}
+      Scope: CLOUDFRONT
+      Description: WebACL
+      Name: !Sub ${SystemName}-${EnvName}-ACL01
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub ${SystemName}-${EnvName}-WebACLMetrics
+        SampledRequestsEnabled: true
+      Rules:
+        - Name: AWS-AWSManagedRulesAmazonIpReputationList
+          Priority: 0
+          OverrideAction:
+            Count: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAmazonIpReputationList
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSManagedRulesAmazonIpReputationList
+            SampledRequestsEnabled: true
+        - Name: AWS-AWSManagedRulesSQLiRuleSet
+          Priority: 1
+          OverrideAction:
+            Count: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSManagedRulesSQLiRuleSet
+            SampledRequestsEnabled: true
+        - Name: AWS-AWSManagedRulesKnownBadInputsRuleSet
+          Priority: 2
+          OverrideAction:
+            Count: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSManagedRulesKnownBadInputsRuleSet
+            SampledRequestsEnabled: true
+# ------------------------------------------------------------#
+# Create WAF Log Bucket
+# ------------------------------------------------------------# 
+  WAFLogBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub aws-waf-logs-${SystemName}-${EnvName}-acl01
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: !Sub aws-waf-logs-${SystemName}-${EnvName}-acl-logs-lifecycle
+            Status: Enabled
+            ExpirationInDays: 365
+      Tags:
+        - Key: Name
+          Value: !Sub aws-waf-logs-${SystemName}-${EnvName}-acl01
+# ------------------------------------------------------------#
+# WAF Logging Configuration
+# ------------------------------------------------------------# 
+  WAFLoggingConfiguration:
+    Type: 'AWS::WAFv2::LoggingConfiguration'
+    Properties:
+      ResourceArn: !GetAtt WebACL.Arn
+      LogDestinationConfigs:
+        - !GetAtt WAFLogBucket.Arn
+#------------------------------------------------------------
+# Output Parameters
+#------------------------------------------------------------
+Outputs:
+#WebACL
+  WebACL:
+    Value: !Ref WebACL
+    Export:
+      Name: WebACL
+#WebACL Arn
+  WebACLArn:
+    Value: !GetAtt WebACL.Arn
+    Export:
+      Name: WebACLARN
+#S3 Log Bucket
+  WAFLogBucket:
+    Value: !Ref WAFLogBucket
+    Export:
+      Name: WAFLogBucket
+#S3 Log Bucket Arn
+  WAFLogBucketArn:
+    Value: !GetAtt WAFLogBucket.Arn
+    Export:
+      Name: WAFLogBucketARN
