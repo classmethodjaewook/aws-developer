@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create VPC Flow Logs
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+  BucketName:
+    Description: "Bucket name."
+    Type: String
+    Default: "bucket"
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select the VPC
+
+# ------------------------------------------------------------#
+#  Create VPC Flow Logs Bucket
+# ------------------------------------------------------------#
+Resources:
+  FlowLogsBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub ${SystemName}-${EnvName}-${BucketName}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: !Sub ${SystemName}-${EnvName}-${BucketName}-lifecycle
+            Status: Enabled
+            ExpirationInDays: 365
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-${BucketName}
+
+# ------------------------------------------------------------#
+#  Create VPC Flow Logs Bucket
+# ------------------------------------------------------------#
+  VPCFlowlogs:
+    Type: AWS::EC2::FlowLog
+    Properties:
+      LogDestinationType: s3
+      LogDestination: !GetAtt FlowLogsBucket.Arn
+      ResourceId:
+        Ref: VpcId
+      ResourceType: VPC
+      TrafficType: ALL
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-${EnvName}-flowlogs
