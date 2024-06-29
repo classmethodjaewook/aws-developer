@@ -43,7 +43,7 @@ Resources:
           Value: !Sub ${SystemName}-${EnvName}-${BucketName}
 
 # ------------------------------------------------------------#
-#  Create VPC Flow Logs Bucket
+#  Create VPC Flow Logs
 # ------------------------------------------------------------#
   VPCFlowlogs:
     Type: AWS::EC2::FlowLog
