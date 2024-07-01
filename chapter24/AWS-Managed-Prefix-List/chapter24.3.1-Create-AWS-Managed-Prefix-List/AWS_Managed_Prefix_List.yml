@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create PrefixList for SecurityGroup
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  SystemName:
+    Description: "System name of each resource names."
+    Type: String
+    Default: "gr"
+  EnvName:
+    Description: "Environment name of each resource names."
+    Type: String
+    Default: "product"
+# ------------------------------------------------------------#
+#  Create Prefix List
+# ------------------------------------------------------------#
+Resources:
+  PrefixList:
+    Type: AWS::EC2::PrefixList
+    Properties: 
+      AddressFamily: IPv4
+      Entries: 
+        - Cidr: 1.2.3.4/32
+        - Cidr: 1.3.2.4/32
+        - Cidr: 1.4.2.4/32
+        - Cidr: 1.5.3.5/32
+      MaxEntries: 4
+      PrefixListName: !Sub ${SystemName}-${EnvName}-prefix
+# ------------------------------------------------------------
+# Output Parameters
+# ------------------------------------------------------------
+Outputs:
+# Security Groups
+  PrefixList:
+    Value: !Ref PrefixList
+    Export:
+      Name: !Sub ${EnvName}-prefix
