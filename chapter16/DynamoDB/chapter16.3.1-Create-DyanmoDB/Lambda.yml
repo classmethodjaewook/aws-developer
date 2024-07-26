@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Create IAM Role
-# ------------------------------------------------------------
+Description: Create API Gateway & Lambda
+# ------------------------------------------------------------#
 # Input Parameters
-# ------------------------------------------------------------
+# ------------------------------------------------------------# 
 Parameters:
   SystemName:
     Description: "System name of each resource names."
@@ -12,15 +12,34 @@ Parameters:
     Description: "Environment name of each resource names."
     Type: String
     Default: "product"
+
 # ------------------------------------------------------------#
-#  Create IAM Role
+#  Create Lambda
 # ------------------------------------------------------------#
-Resources:
-  EC2IAMRole:
+Resources : 
+  GetDataLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${SystemName}-${EnvName}-GetData
+      Code:
+        ZipFile: |
+          import boto3
+          dynamodb = boto3.resource('dynamodb')
+          table = dynamodb.Table("gr-product-db")
+
+          def lambda_handler(event, context):
+              response = table.scan()
+              return response['Items']
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaIAMRole.Arn
+      Runtime: python3.12
+      Timeout: 30
+
+  LambdaIAMRole:
     Type: AWS::IAM::Role
     DeletionPolicy: Delete
     Properties:
-      RoleName: !Sub ${SystemName}-${EnvName}-dynamodb-role
+      RoleName: !Sub ${SystemName}-${EnvName}-dynamodbrole
       AssumeRolePolicyDocument: 
         Version: "2012-10-17"
         Statement: 
