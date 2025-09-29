@@ -14,6 +14,8 @@ AWS 잘하는 개발자 되기
 
 따라서 Homebrew로 파이썬을 설치하는 방법으로 명령어를 추가하였습니다.
 
+또한 cfn-lint 설치 시 권한 문제나 PATH 설정으로 인해 실행이 되지 않을 경우를 대비해 관련 추가 명령어도 함께 기재하였습니다.
+
 ※ Homebrew는 패키지 관리 도구를 이용하면 파이썬을 비롯한 다양한 개발 도구를 간단하게 설치하고 관리할 수 있습니다.
 
 ### 책에 기재된 기존 방식
@@ -29,7 +31,7 @@ pip3 install cfn-lint
 cfn-lint --version
 ```
 
-macOS에서 기본 파이썬으로 설치한 패키지(예: cfn-lint)가 터미널에서 인식되지 않는 경우, PATH 환경 변수에 설치 경로를 추가해야 합니다.
+맥OS에서 기본 파이썬으로 설치한 패키지(예: cfn-lint)가 터미널에서 인식되지 않는 경우, PATH 환경 변수에 설치 경로를 추가해야 합니다.
 
 터미널에 아래 명령어를 입력하면 현재 사용 중인 쉘을 확인할 수 있습니다.
 
@@ -48,7 +50,7 @@ echo $SHELL
 [Python/3.x]에는 파이썬 버전을 입력합니다.
 
 ```bash
-# zsh 설정 파일에 Python 사용자 설치 경로를 추가
+# zsh 설정 파일에 파이썬 사용자 설치 경로를 추가
 echo 'export PATH=$HOME/Library/Python/3.x/bin:$PATH' >> ~/.zshrc
 
 # 변경 사항 적용
@@ -60,7 +62,7 @@ source ~/.zshrc
 [Python/3.x]에는 파이썬 버전을 입력합니다.
 
 ```bash
-# bash 설정 파일에 Python 사용자 설치 경로를 추가
+# bash 설정 파일에 파이썬 사용자 설치 경로를 추가
 echo 'export PATH=$HOME/Library/Python/3.x/bin:$PATH' >> ~/.bash_profile
 
 # 변경 사항 적용
