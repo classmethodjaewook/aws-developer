@@ -20,11 +20,11 @@ AWS 잘하는 개발자 되기
 
 ```bash
 # ➊ 로컬 환경에 파이썬 설치 확인
-python3 –version
+python3 –-version
 # ➋ 파이썬 패키지인 pip를 최신 버전으로 업그레이드
 python3 -m pip install --upgrade pip
 # ➌ pip를 이용하여 클라우드포메이션 린터 설치
-pip install cfn-lint
+pip3 install cfn-lint
 # ➍ 클라우드포메이션 린터 버전 확인
 cfn-lint --version
 ```
