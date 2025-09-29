@@ -20,12 +20,69 @@ AWS 잘하는 개발자 되기
 
 ```bash
 # ➊ 로컬 환경에 파이썬 설치 확인
-python3 –-version
+python3 --version
 # ➋ 파이썬 패키지인 pip를 최신 버전으로 업그레이드
 python3 -m pip install --upgrade pip
 # ➌ pip를 이용하여 클라우드포메이션 린터 설치
 pip3 install cfn-lint
 # ➍ 클라우드포메이션 린터 버전 확인
+cfn-lint --version
+```
+
+macOS에서 기본 파이썬으로 설치한 패키지(예: cfn-lint)가 터미널에서 인식되지 않는 경우, PATH 환경 변수에 설치 경로를 추가해야 합니다.
+
+터미널에 아래 명령어를 입력하면 현재 사용 중인 쉘을 확인할 수 있습니다.
+
+#### 설치 중 에러가 발생하는 경우
+
+```bash
+# # 현재 사용 중인 쉘(shell) 경로를 출력
+echo $SHELL
+```
+
+- /bin/zsh → zsh
+- /bin/bash → bash
+
+#### zsh일 경우
+
+[Python/3.x]에는 파이썬 버전을 입력합니다.
+
+```bash
+# zsh 설정 파일에 Python 사용자 설치 경로를 추가
+echo 'export PATH=$HOME/Library/Python/3.x/bin:$PATH' >> ~/.zshrc
+
+# 변경 사항 적용
+source ~/.zshrc
+```
+
+#### bash일 경우
+
+[Python/3.x]에는 파이썬 버전을 입력합니다.
+
+```bash
+# bash 설정 파일에 Python 사용자 설치 경로를 추가
+echo 'export PATH=$HOME/Library/Python/3.x/bin:$PATH' >> ~/.bash_profile
+
+# 변경 사항 적용
+source ~/.bash_profile
+```
+
+#### PATH 반영 확인
+
+PATH 추가 후 아래 명령어로 반영 여부를 확인할 수 있습니다.
+
+```bash
+# PATH 환경 변수에 추가한 경로가 포함되었는지 확인
+echo $PATH
+```
+
+#### 린터 설치
+
+```bash
+# 권한 문제나 PATH 문제 발생 시, --user 옵션으로 설치
+python3 -m pip install --user cfn-lint
+
+# cfn-lint 버전 확인
 cfn-lint --version
 ```
 
